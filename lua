@@ -1,717 +1,167 @@
-task.spawn(
-    function()
-        local load = require(game.ReplicatedStorage:WaitForChild("Fsys")).load
+-- Clean Minimal Dupe UI (🤖 DUPE SYSTEM + All White Text)
+-- Para sa Roblox exploits
 
-        set_thread_identity(2)
-        local clientData = load("ClientData")
-        local items = load("KindDB")
-        local router = load("RouterClient")
-        local downloader = load("DownloadClient")
-        local animationManager = load("AnimationManager")
-        local petRigs = load("new:PetRigs")
-        set_thread_identity(8)
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local player = Players.LocalPlayer
 
-        local petModels = {}
-        local pets = {}
-        local equippedPet = nil
-        local mountedPet = nil
-        local currentMountTrack = nil
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "MinimalDupeUI"
+ScreenGui.Parent = game:GetService("CoreGui")
+ScreenGui.ResetOnSpawn = false
 
-        local function updateData(key, action)
-            local data = clientData.get(key)
-            local clonedData = table.clone(data)
-            clientData.predict(key, action(clonedData))
-        end
+-- ===================== MAIN FRAME =====================
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 280, 0, 140)
+MainFrame.Position = UDim2.new(0.5, -140, 0.5, -70)
+MainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
+MainFrame.BorderSizePixel = 0
+MainFrame.ClipsDescendants = true
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
 
-        local function getUniqueId()
-            local HttpService = game:GetService("HttpService")
-            return HttpService:GenerateGUID(false)
-        end
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 16)
+UICorner.Parent = MainFrame
 
-        local function getPetModel(kind)
-            if petModels[kind] then
-                return petModels[kind]
-            end
-            local streamed = downloader.promise_download_copy("Pets", kind):expect()
-            petModels[kind] = streamed
-            return streamed
-        end
+-- Shadow / Glow
+local Shadow = Instance.new("ImageLabel")
+Shadow.Size = UDim2.new(1, 40, 1, 40)
+Shadow.Position = UDim2.new(0, -20, 0, -20)
+Shadow.BackgroundTransparency = 1
+Shadow.Image = "rbxassetid://6014261993"
+Shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+Shadow.ImageTransparency = 0.65
+Shadow.ScaleType = Enum.ScaleType.Slice
+Shadow.SliceCenter = Rect.new(49, 49, 450, 450)
+Shadow.ZIndex = -1
+Shadow.Parent = MainFrame
 
-        local function createPet(id, properties)
-            local uniqueId = getUniqueId()
-            local pet = nil
+-- Gradient Background
+local UIGradient = Instance.new("UIGradient")
+UIGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0.00, Color3.fromRGB(35, 35, 45)),
+    ColorSequenceKeypoint.new(1.00, Color3.fromRGB(15, 15, 25))
+}
+UIGradient.Rotation = 90
+UIGradient.Parent = MainFrame
 
-            set_thread_identity(2)
-            updateData(
-                "inventory",
-                function(inventory)
-                    local newPets = table.clone(inventory.pets)
-                    local item = items[id]
-                    pet = {
-                        unique = uniqueId,
-                        category = "pets",
-                        id = id,
-                        kind = item.kind,
-                        newness_order = 0,
-                        properties = properties
-                    }
-                    newPets[uniqueId] = pet
-                    inventory.pets = newPets
-                    return inventory
-                end
-            )
+-- ===================== TITLE BAR =====================
+local TitleBar = Instance.new("Frame")
+TitleBar.Size = UDim2.new(1, 0, 0, 45)
+TitleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+TitleBar.BorderSizePixel = 0
+TitleBar.Parent = MainFrame
 
-            set_thread_identity(8)
-            pets[uniqueId] = {data = pet, model = nil}
-            return pet
-        end
+local TitleCorner = Instance.new("UICorner")
+TitleCorner.CornerRadius = UDim.new(0, 16)
+TitleCorner.Parent = TitleBar
 
-        local function neonify(model, entry)
-            local petModel = model:FindFirstChild("PetModel")
-            if not petModel then
-                return
-            end
-            for neonPart, configuration in pairs(entry.neon_parts) do
-                local trueNeonPart = petRigs.get(petModel).get_geo_part(petModel, neonPart)
-                trueNeonPart.Material = configuration.Material
-                trueNeonPart.Color = configuration.Color
-            end
-        end
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, -50, 1, 0)
+Title.Position = UDim2.new(0, 15, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Font = Enum.Font.GothamBlack
+Title.Text = "🤖 DUPE SYSTEM"  -- Updated title with emoji
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)  -- Pure White
+Title.TextSize = 18
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = TitleBar
 
-        local function addPetWrapper(wrapper)
-            updateData(
-                "pet_char_wrappers",
-                function(petWrappers)
-                    wrapper.unique = #petWrappers + 1
-                    wrapper.index = #petWrappers + 1
-                    petWrappers[#petWrappers + 1] = wrapper
-                    return petWrappers
-                end
-            )
-        end
+-- ===================== DUPE BUTTON =====================
+local DupeButton = Instance.new("TextButton")
+DupeButton.Size = UDim2.new(0.88, 0, 0, 60)
+DupeButton.Position = UDim2.new(0.06, 0, 0, 60)
+DupeButton.BackgroundColor3 = Color3.fromRGB(0, 180, 90)
+DupeButton.BorderSizePixel = 0
+DupeButton.Font = Enum.Font.GothamBold
+DupeButton.Text = "DUPE"
+DupeButton.TextColor3 = Color3.fromRGB(255, 255, 255)  -- Pure White
+DupeButton.TextSize = 24
+DupeButton.AutoButtonColor = false
+DupeButton.Parent = MainFrame
 
-        local function addPetState(state)
-            updateData(
-                "pet_state_managers",
-                function(petStates)
-                    petStates[#petStates + 1] = state
-                    return petStates
-                end
-            )
-        end
+local ButtonCorner = Instance.new("UICorner")
+ButtonCorner.CornerRadius = UDim.new(0, 12)
+ButtonCorner.Parent = DupeButton
 
-        local function findIndex(array, finder)
-            for index, value in pairs(array) do
-                if finder(value, index) then
-                    return index
-                end
-            end
-            return nil
-        end
+local ButtonGlow = Instance.new("UIStroke")
+ButtonGlow.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+ButtonGlow.Color = Color3.fromRGB(0, 255, 130)
+ButtonGlow.Thickness = 2.5
+ButtonGlow.Transparency = 0.4
+ButtonGlow.Parent = DupeButton
 
-        local function removePetWrapper(uniqueId)
-            updateData(
-                "pet_char_wrappers",
-                function(petWrappers)
-                    local index =
-                        findIndex(
-                        petWrappers,
-                        function(wrapper)
-                            return wrapper.pet_unique == uniqueId
-                        end
-                    )
-                    if not index then
-                        return petWrappers
-                    end
-                    table.remove(petWrappers, index)
-                    for wrapperIndex, wrapper in pairs(petWrappers) do
-                        wrapper.unique = wrapperIndex
-                        wrapper.index = wrapperIndex
-                    end
-                    return petWrappers
-                end
-            )
-        end
+-- ===================== ANIMATIONS =====================
+local function hoverIn()
+    TweenService:Create(DupeButton, TweenInfo.new(0.25, Enum.EasingStyle.Quint), {
+        BackgroundColor3 = Color3.fromRGB(0, 210, 110),
+        Size = UDim2.new(0.90, 0, 0, 63)
+    }):Play()
+    
+    TweenService:Create(ButtonGlow, TweenInfo.new(0.25), {
+        Thickness = 3.5,
+        Transparency = 0.2
+    }):Play()
+end
 
-        local function clearPetState(uniqueId)
-            local pet = pets[uniqueId]
-            if not pet or not pet.model then
-                return
-            end
-            updateData(
-                "pet_state_managers",
-                function(states)
-                    local index =
-                        findIndex(
-                        states,
-                        function(state)
-                            return state.char == pet.model
-                        end
-                    )
-                    if not index then
-                        return states
-                    end
-                    local clonedStates = table.clone(states)
-                    clonedStates[index] = table.clone(clonedStates[index])
-                    clonedStates[index].states = {}
-                    return clonedStates
-                end
-            )
-        end
+local function hoverOut()
+    TweenService:Create(DupeButton, TweenInfo.new(0.25, Enum.EasingStyle.Quint), {
+        BackgroundColor3 = Color3.fromRGB(0, 180, 90),
+        Size = UDim2.new(0.88, 0, 0, 60)
+    }):Play()
+    
+    TweenService:Create(ButtonGlow, TweenInfo.new(0.25), {
+        Thickness = 2.5,
+        Transparency = 0.4
+    }):Play()
+end
 
-        local function setPetState(uniqueId, id)
-            local pet = pets[uniqueId]
-            if not pet or not pet.model then
-                return
-            end
-            updateData(
-                "pet_state_managers",
-                function(states)
-                    local index =
-                        findIndex(
-                        states,
-                        function(state)
-                            return state.char == pet.model
-                        end
-                    )
-                    if not index then
-                        return states
-                    end
-                    local clonedStates = table.clone(states)
-                    clonedStates[index] = table.clone(clonedStates[index])
-                    clonedStates[index].states = {{id = id}}
-                    return clonedStates
-                end
-            )
-        end
+DupeButton.MouseEnter:Connect(hoverIn)
+DupeButton.MouseLeave:Connect(hoverOut)
 
-        local function attachPlayerToPet(pet)
-            local character = game.Players.LocalPlayer.Character
-            if not character or not character.PrimaryPart then
-                return false
-            end
-            local ridePosition = pet:FindFirstChild("RidePosition", true)
-            if not ridePosition then
-                return false
-            end
+-- Click feedback
+DupeButton.MouseButton1Down:Connect(function()
+    TweenService:Create(DupeButton, TweenInfo.new(0.12), {
+        BackgroundColor3 = Color3.fromRGB(0, 140, 70)
+    }):Play()
+end)
 
-            local sourceAttachment = Instance.new("Attachment")
-            sourceAttachment.Parent = ridePosition
-            sourceAttachment.Position = Vector3.new(0, 1.237, 0)
-            sourceAttachment.Name = "SourceAttachment"
+DupeButton.MouseButton1Up:Connect(function()
+    TweenService:Create(DupeButton, TweenInfo.new(0.18), {
+        BackgroundColor3 = Color3.fromRGB(0, 210, 110)
+    }):Play()
+end)
 
-            local stateConnection = Instance.new("RigidConstraint")
-            stateConnection.Name = "StateConnection"
-            stateConnection.Attachment0 = sourceAttachment
-            stateConnection.Attachment1 = character.PrimaryPart.RootAttachment
-            stateConnection.Parent = character
-            return true
-        end
-
-        local function clearPlayerState()
-            updateData(
-                "state_manager",
-                function(state)
-                    local clonedState = table.clone(state)
-                    clonedState.states = {}
-                    clonedState.is_sitting = false
-                    return clonedState
-                end
-            )
-        end
-
-        local function setPlayerState(id)
-            updateData(
-                "state_manager",
-                function(state)
-                    local clonedState = table.clone(state)
-                    clonedState.states = {{id = id}}
-                    clonedState.is_sitting = true
-                    return clonedState
-                end
-            )
-        end
-
-        local function removePetState(uniqueId)
-            local pet = pets[uniqueId]
-            if not pet or not pet.model then
-                return
-            end
-            updateData(
-                "pet_state_managers",
-                function(petStates)
-                    local index =
-                        findIndex(
-                        petStates,
-                        function(state)
-                            return state.char == pet.model
-                        end
-                    )
-                    if not index then
-                        return petStates
-                    end
-                    table.remove(petStates, index)
-                    return petStates
-                end
-            )
-        end
-
-        local function unmount(uniqueId)
-            local pet = pets[uniqueId]
-            if not pet or not pet.model then
-                return
-            end
-            if currentMountTrack then
-                currentMountTrack:Stop()
-                currentMountTrack:Destroy()
-            end
-            local sourceAttachment = pet.model:FindFirstChild("SourceAttachment", true)
-            if sourceAttachment then
-                sourceAttachment:Destroy()
-            end
-            if game.Players.LocalPlayer.Character then
-                for _, d in pairs(game.Players.LocalPlayer.Character:GetDescendants()) do
-                    if d:IsA("BasePart") and d:GetAttribute("HaveMass") then
-                        d.Massless = false
-                    end
-                end
-            end
-            clearPetState(uniqueId)
-            clearPlayerState()
-            pet.model:ScaleTo(1)
-            mountedPet = nil
-        end
-
-        local function mount(uniqueId, playerState, petState)
-            local pet = pets[uniqueId]
-            if not pet or not pet.model then
-                return
-            end
-            local player = game.Players.LocalPlayer
-            if not player.Character or not player.Character.PrimaryPart then
-                return
-            end
-            mountedPet = uniqueId
-            setPetState(uniqueId, petState)
-            setPlayerState(playerState)
-            pet.model:ScaleTo(2)
-            attachPlayerToPet(pet.model)
-            currentMountTrack =
-                player.Character.Humanoid.Animator:LoadAnimation(animationManager.get_track("PlayerRidingPet"))
-            player.Character.Humanoid.Sit = true
-            for _, d in pairs(player.Character:GetDescendants()) do
-                if d:IsA("BasePart") and d.Massless == false then
-                    d.Massless = true
-                    d:SetAttribute("HaveMass", true)
-                end
-            end
-            currentMountTrack:Play()
-        end
-
-        local function fly(uniqueId)
-            mount(uniqueId, "PlayerFlyingPet", "PetBeingFlown")
-        end
-        local function ride(uniqueId)
-            mount(uniqueId, "PlayerRidingPet", "PetBeingRidden")
-        end
-
-        local function unequip(item)
-            local pet = pets[item.unique]
-            if not pet or not pet.model then
-                return
-            end
-            unmount(item.unique)
-            removePetWrapper(item.unique)
-            removePetState(item.unique)
-            pet.model:Destroy()
-            pet.model = nil
-            equippedPet = nil
-        end
-
-        local function equip(item)
-            if equippedPet then
-                unequip(equippedPet)
-            end
-            local petModel = getPetModel(item.kind):Clone()
-            petModel.Parent = workspace
-            pets[item.unique].model = petModel
-            if item.properties.neon or item.properties.mega_neon then
-                neonify(petModel, items[item.kind])
-            end
-            equippedPet = item
-            addPetWrapper(
-                {
-                    char = petModel,
-                    mega_neon = item.properties.mega_neon,
-                    neon = item.properties.neon,
-                    player = game.Players.LocalPlayer,
-                    entity_controller = game.Players.LocalPlayer,
-                    controller = game.Players.LocalPlayer,
-                    rp_name = item.properties.rp_name or "",
-                    pet_trick_level = item.properties.pet_trick_level,
-                    pet_unique = item.unique,
-                    pet_id = item.id,
-                    location = {
-                        full_destination_id = "housing",
-                        destination_id = "housing",
-                        house_owner = game.Players.LocalPlayer
-                    },
-                    pet_progression = {
-                        friendship_level = item.properties.friendship_level,
-                        age = item.properties.age,
-                        percentage = 0
-                    },
-                    are_colors_sealed = false,
-                    is_pet = true
-                }
-            )
-            addPetState(
-                {
-                    char = petModel,
-                    player = game.Players.LocalPlayer,
-                    store_key = "pet_state_managers",
-                    is_sitting = false,
-                    chars_connected_to_me = {},
-                    states = {}
-                }
-            )
-        end
-
-        local oldGet = router.get
-        local function createRemoteFunctionMock(callback)
-            return {
-                InvokeServer = function(_, ...)
-                    return callback(...)
-                end
-            }
-        end
-        local function createRemoteEventMock(callback)
-            return {
-                FireServer = function(_, ...)
-                    return callback(...)
-                end
-            }
-        end
-
-        local equipRemote =
-            createRemoteFunctionMock(
-            function(uniqueId, metadata)
-                local pet = pets[uniqueId]
-                if not pet then
-                    return
-                end
-                equip(pet.data)
-                return true, {action = "equip", is_server = true}
-            end
-        )
-        local unequipRemote =
-            createRemoteFunctionMock(
-            function(uniqueId)
-                local pet = pets[uniqueId]
-                if not pet then
-                    return
-                end
-                unequip(pet.data)
-                return true, {action = "unequip", is_server = true}
-            end
-        )
-        local rideRemote =
-            createRemoteFunctionMock(
-            function(item)
-                ride(item.pet_unique)
-            end
-        )
-        local flyRemote =
-            createRemoteFunctionMock(
-            function(item)
-                fly(item.pet_unique)
-            end
-        )
-        local unmountRemoteFunction =
-            createRemoteFunctionMock(
-            function()
-                unmount(mountedPet)
-            end
-        )
-        local unmountRemoteEvent =
-            createRemoteEventMock(
-            function()
-                unmount(mountedPet)
-            end
-        )
-
-        router.get = function(name)
-            if name == "ToolAPI/Equip" then
-                return equipRemote
-            end
-            if name == "ToolAPI/Unequip" then
-                return unequipRemote
-            end
-            if name == "AdoptAPI/RidePet" then
-                return rideRemote
-            end
-            if name == "AdoptAPI/FlyPet" then
-                return flyRemote
-            end
-            if name == "AdoptAPI/ExitSeatStatesYield" then
-                return unmountRemoteFunction
-            end
-            if name == "AdoptAPI/ExitSeatStates" then
-                return unmountRemoteEvent
-            end
-            return oldGet(name)
-        end
-
-        for _, charWrapper in pairs(clientData.get("pet_char_wrappers")) do
-            oldGet("ToolAPI/Unequip"):InvokeServer(charWrapper.pet_unique)
-        end
-
-        local Loads = require(game.ReplicatedStorage.Fsys).load
-        local InventoryDB = Loads("InventoryDB")
-
-        function GetPetByName(name)
-            for i, v in pairs(InventoryDB.pets) do
-                if v.name:lower() == name:lower() then
-                    return v.id
-                end
-            end
-            return false
-        end
-
-        local WindUI =
-            loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
-
-        WindUI:Popup(
-            {
-                Title = "RAYZ HUB",
-                Icon = "cuboid",
-                IconThemed = true,
-                Content = "hello this is adopt me visual enjoy make sure you join our sever for more updates",
-                Buttons = {
-                    {
-                        Title = "Cancel",
-                        Callback = function()
-                        end,
-                        Variant = "Secondary"
-                    },
-                    {
-                        Title = "Continue",
-                        Icon = "arrow-right",
-                        Callback = function()
-                            Confirmed = true
-                        end,
-                        Variant = "Primary"
-                    }
-                }
-            }
-        )
-
-        repeat
-            wait()
-        until Confirmed
-
-        local Window =
-            WindUI:CreateWindow(
-            {
-                Title = "RAYZ HUB",
-                Icon = "laptop",
-                Author = "by insidious.xvi",
-                Folder = "ChunkHubmm2",
-                Size = UDim2.fromOffset(420, 350),
-                Transparent = false,
-                Theme = "Dark",
-                User = {
-                    Enabled = true,
-                    Callback = function()
-                    end,
-                    Anonymous = false
-                },
-                SideBarWidth = 150,
-                ScrollBarEnabled = true
-            }
-        )
-
-        Window:EditOpenButton(
-            {
-                Title = "open RAYZ HUB",
-                Icon = "rbxassetid://4483345998",
-                CornerRadius = UDim.new(0, 16),
-                StrokeThickness = 2,
-                Color = ColorSequence.new(Color3.fromHex("5787d2"), Color3.fromHex("ffffff")),
-                OnlyMobile = false,
-                Enabled = true,
-                Draggable = true
-            }
-        )
-
-        Window:SetToggleKey(Enum.KeyCode.K)
-
-        local PetsTab =
-            Window:Tab(
-            {
-                Title = "Pets",
-                Icon = "heart",
-                Desc = "Spawn pets"
-            }
-        )
-
-        local DiscordTab =
-            Window:Tab(
-            {
-                Title = "Discord",
-                Icon = "users",
-                Desc = "Copy our Discord invite"
-            }
-        )
-
-        local petName = nil
-        local petType = "FR"
-
-        DiscordTab:Paragraph(
-            {
-                Title = "Join our Discord!",
-                Desc = "Click the button below to copy the invite link",
-                Image = "users",
-                Color = "Blue"
-            }
-        )
-
-        DiscordTab:Button(
-            {
-                Title = "Copy Invite",
-                Icon = "users",
-                Callback = function()
-                    task.spawn(
-                        function()
-                            setclipboard("https://discord.gg/An5KYG8w6a")
-                            warn("Discord invite copied to clipboard!")
-                        end
-                    )
-                end
-            }
-        )
-
-        PetsTab:Paragraph(
-            {
-                Title = "Pet Spawner",
-                Desc = "Enter the pet name and choose pet type before spawning",
-                Image = "heart",
-                Color = "Blue"
-            }
-        )
-
-        PetsTab:Input(
-            {
-                Title = "Pet Name",
-                Value = "",
-                InputIcon = "search",
-                Placeholder = "Enter pet name",
-                Callback = function(input)
-                    task.spawn(
-                        function()
-                            petName = input
-                            warn("Pet name set to:", petName)
-                        end
-                    )
-                end
-            }
-        )
-
-        PetsTab:Dropdown(
-            {
-                Title = "Type",
-                Values = {"FR", "NFR", "MFR"},
-                Multi = false,
-                Default = "FR",
-                Callback = function(value)
-                    task.spawn(
-                        function()
-                            petType = value
-                            warn("Pet type set to:", petType)
-                        end
-                    )
-                end
-            }
-        )
-
-        PetsTab:Button(
-            {
-                Title = "Spawn Pet",
-                Icon = "sparkles",
-                Callback = function()
-                    task.spawn(
-                        function()
-                            if not petName or petName == "" then
-                                warn("Please enter a pet name!")
-                                return
-                            end
-                            local petId = GetPetByName(petName)
-                            if not petId then
-                                warn("Pet not found!")
-                                WindUI:Notify(
-                                    {
-                                        Title = "Error",
-                                        Content = "Pet Not Found Please Try Again",
-                                        Icon = "shield-alert",
-                                        Duration = 2
-                                    }
-                                )
-                                return
-                            end
-                            if petType == "FR" then
-                                createPet(
-                                    petId,
-                                    {
-                                        pet_trick_level = 0,
-                                        rideable = true,
-                                        flyable = true,
-                                        friendship_level = 0,
-                                        age = 1,
-                                        ailments_completed = 0,
-                                        rp_name = ""
-                                    }
-                                )
-                            elseif petType == "NFR" then
-                                createPet(
-                                    petId,
-                                    {
-                                        pet_trick_level = 0,
-                                        neon = true,
-                                        rideable = true,
-                                        flyable = true,
-                                        friendship_level = 0,
-                                        age = 1,
-                                        ailments_completed = 0,
-                                        rp_name = ""
-                                    }
-                                )
-                            elseif petType == "MFR" then
-                                createPet(
-                                    petId,
-                                    {
-                                        pet_trick_level = 0,
-                                        mega_neon = true,
-                                        rideable = true,
-                                        flyable = true,
-                                        friendship_level = 0,
-                                        age = 1,
-                                        ailments_completed = 0,
-                                        rp_name = ""
-                                    }
-                                )
-                            end
-                        end
-                    )
-                    WindUI:Notify(
-                        {
-                            Title = "Spawning Item",
-                            Content = "Starting spawn Pet " .. petName .. " " .. petType,
-                            Icon = "loader",
-                            Duration = 2
-                        }
-                    )
-                end
-            }
-        )
+-- ===================== DUPE LOGIC =====================
+local function duplicateItem()
+    local char = player.Character
+    if not char then return end
+    
+    local tool = char:FindFirstChildWhichIsA("Tool") or player.Backpack:FindFirstChildWhichIsA("Tool")
+    
+    if tool then
+        local clone = tool:Clone()
+        clone.Parent = player.Backpack
     end
-)
+end
+
+DupeButton.MouseButton1Click:Connect(duplicateItem)
+
+-- Close button (top right)
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 32, 0, 32)
+CloseBtn.Position = UDim2.new(1, -38, 0, 6)
+CloseBtn.BackgroundTransparency = 1
+CloseBtn.Text = "×"
+CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.TextSize = 24
+CloseBtn.Parent = MainFrame
+
+CloseBtn.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+end)
+
+print("Dupe UI updated • 🤖 DUPE SYSTEM")
